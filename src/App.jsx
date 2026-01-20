@@ -109,6 +109,10 @@ function App() {
     setProducts(prev => prev.map(p => p._id === updatedProduct._id ? updatedProduct : p))
   }
 
+  const handleReplaceProduct = (tempId, newProduct) => {
+    setProducts(prev => prev.map(p => p._id === tempId ? newProduct : p))
+  }
+
   const handleDeleteProduct = async (id) => {
     // Optimistic delete
     setProducts(prev => prev.filter(p => p._id !== id))
@@ -163,6 +167,7 @@ function App() {
             products={products}
             onAddProduct={handleAddProduct}
             onUpdateProduct={handleUpdateProduct}
+            onReplaceProduct={handleReplaceProduct}
             onDeleteProduct={handleDeleteProduct}
             showToast={showToast}
             onConfirm={handleConfirm}

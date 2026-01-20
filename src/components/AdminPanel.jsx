@@ -19,7 +19,7 @@ const AVAILABLE_COLORS = [
 
 const AVAILABLE_SIZES = ["P", "M", "G", "GG", "G1", "G2", "G3", "38", "40", "42", "44", "46"];
 
-const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, onExit, showToast, onConfirm }) => {
+const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onReplaceProduct, onDeleteProduct, onExit, showToast, onConfirm }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,58 +88,90 @@ const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsSubmitting(true);
 
-        try {
-            // 1. Upload new images in parallel with compression
-            const uploadPromises = imageFiles.map(async (file) => {
-                try {
-                    const compressedFile = await compressImage(file);
-                    return await uploadImage(compressedFile);
-                } catch (err) {
-                    console.error("Error preparing/uploading image:", err);
-                    return null;
-                }
-            });
+        const tempId = currentProduct ? currentProduct._id : `temp-${Date.now()}`;
+        const isNew = !currentProduct;
 
-            const uploadedAssets = await Promise.all(uploadPromises);
+        // Generate previews for new images
+        const newImagePreviews = imageFiles.map(file => ({
+            asset: {
+                url: URL.createObjectURL(file)
+            },
+            _isTemp: true
+        }));
 
-            // Filter out any failed uploads (nulls)
-            const validNewAssets = uploadedAssets.filter(asset => asset !== null);
+        const currentImages = formData.imagens || [];
+        const optimisticImages = [...currentImages, ...newImagePreviews.map(p => p.asset.url)];
 
-            // Combine existing images with new uploads
-            const finalImages = [...(formData.imagens || []), ...validNewAssets];
+        const optimisticProduct = {
+            ...formData,
+            _id: tempId,
+            _type: 'product',
+            nome: formData.nome,
+            preco: parseFloat(formData.preco),
+            quantidade: parseInt(formData.quantidade),
+            imagens: optimisticImages,
+            cores: formData.cores,
+            tamanhos: formData.tamanhos,
+            _createdAt: new Date().toISOString(),
+            isUploading: true
+        };
 
-            const doc = {
-                _type: 'product',
-                nome: formData.nome,
-                preco: parseFloat(formData.preco),
-                quantidade: parseInt(formData.quantidade),
-                imagens: finalImages,
-                cores: formData.cores,
-                tamanhos: formData.tamanhos
-            };
-
-            let result;
-            if (currentProduct) {
-                // Update
-                result = await client.patch(currentProduct._id).set(doc).commit();
-                onUpdateProduct(result);
-                showToast("Produto atualizado com sucesso!", "success");
-            } else {
-                // Create
-                result = await client.create(doc);
-                onAddProduct(result);
-                showToast("Produto criado com sucesso!", "success");
-            }
-
-            setIsEditing(false);
-        } catch (error) {
-            console.error("Error submitting product:", error);
-            showToast("Erro ao salvar produto.", "error");
-        } finally {
-            setIsSubmitting(false);
+        // 1. Update UI Immediately
+        if (isNew) {
+            onAddProduct(optimisticProduct);
+        } else {
+            onUpdateProduct(optimisticProduct);
         }
+
+        setIsEditing(false);
+        showToast(isNew ? "Salvando produto em segundo plano..." : "Atualizando produto em segundo plano...", "info");
+
+        // 2. Perform background upload
+        (async () => {
+            try {
+                // Upload new images
+                const uploadPromises = imageFiles.map(async (file) => {
+                    try {
+                        const compressedFile = await compressImage(file);
+                        return await uploadImage(compressedFile);
+                    } catch (err) {
+                        console.error("Error upload image:", err);
+                        return null;
+                    }
+                });
+
+                const uploadedAssets = await Promise.all(uploadPromises);
+                const validNewAssets = uploadedAssets.filter(asset => asset !== null);
+
+                // Combine existing Sanity images with new uploaded assets
+                const finalImages = [...(formData.imagens || []), ...validNewAssets];
+
+                const doc = {
+                    _type: 'product',
+                    nome: formData.nome,
+                    preco: parseFloat(formData.preco),
+                    quantidade: parseInt(formData.quantidade),
+                    imagens: finalImages,
+                    cores: formData.cores,
+                    tamanhos: formData.tamanhos
+                };
+
+                let result;
+                if (isNew) {
+                    result = await client.create(doc);
+                    onReplaceProduct(tempId, result);
+                    showToast("Produto salvo com sucesso!", "success");
+                } else {
+                    result = await client.patch(currentProduct._id).set(doc).commit();
+                    onUpdateProduct(result);
+                    showToast("Produto atualizado!", "success");
+                }
+            } catch (error) {
+                console.error("Error submitting product:", error);
+                showToast("Erro ao salvar. Verifique sua conexão.", "error");
+            }
+        })();
     };
 
     const handleDelete = (id) => {
@@ -428,6 +460,12 @@ const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
                             <p className="text-sm text-gray-500">
                                 Qtde: {product.quantidade} | {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.preco)}
                             </p>
+                            {product.isUploading && (
+                                <span className="text-xs font-bold text-amber-600 flex items-center gap-1 mt-1">
+                                    <Loader2 size={12} className="animate-spin" />
+                                    Salvando...
+                                </span>
+                            )}
                         </div>
                         <div className="flex flex-col gap-2 justify-center">
                             <button
