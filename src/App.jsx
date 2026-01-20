@@ -9,6 +9,7 @@ import LoginModal from './components/LoginModal'
 import CartSidebar from './components/CartSidebar'
 import Toast from './components/Toast'
 import ConfirmModal from './components/ConfirmModal'
+import WhatsAppButton from './components/WhatsAppButton'
 import './App.css'
 
 function App() {
@@ -207,6 +208,8 @@ function App() {
           }}
         />
       )}
+
+      {view !== 'admin' && <WhatsAppButton />}
     </div>
   )
 }

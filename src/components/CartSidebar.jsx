@@ -33,7 +33,7 @@ const CartSidebar = ({ cart, isOpen, onClose, onRemoveItem, showToast }) => {
 
         message += `*Total Estimado: ${formatPrice(total)}*`;
 
-        const url = `https://wa.me/5511999999999?text=${encodeURIComponent(message)}`;
+        const url = `https://wa.me/5563984803415?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');
     };
 

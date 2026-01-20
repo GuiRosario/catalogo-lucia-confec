@@ -2,6 +2,22 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Edit, X, Save, Image as ImageIcon, Loader2, Search } from 'lucide-react';
 import { client, urlFor } from '../lib/sanity';
 
+const AVAILABLE_COLORS = [
+    { name: "Preto", hex: "#000000" },
+    { name: "Branco", hex: "#FFFFFF" },
+    { name: "Cinza", hex: "#6B7280" },
+    { name: "Vermelho", hex: "#EF4444" },
+    { name: "Azul", hex: "#3B82F6" },
+    { name: "Azul Escuro", hex: "#1E3A8A" },
+    { name: "Azul Claro", hex: "#93C5FD" },
+    { name: "Indigo", hex: "#4F46E5" },
+    { name: "Rosa", hex: "#EC4899" },
+    { name: "Verde", hex: "#10B981" },
+    { name: "Bege", hex: "#F5F5DC" }
+];
+
+const AVAILABLE_SIZES = ["P", "M", "G", "GG", "G1", "G2", "G3", "38", "40", "42", "44", "46"];
+
 const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, onExit, showToast, onConfirm }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
@@ -22,9 +38,9 @@ const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
     const emptyProduct = {
         nome: '',
         preco: '',
-        imagens: [], // Will hold { _type: 'image', asset: { _ref: ... } } or File objects temporarily
-        cores: '',
-        tamanhos: '',
+        imagens: [],
+        cores: [],
+        tamanhos: [],
         quantidade: ''
     };
 
@@ -37,8 +53,8 @@ const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
             ...product,
             preco: product.preco,
             imagens: product.imagens || [],
-            cores: product.cores?.join(', ') || '',
-            tamanhos: product.tamanhos?.join(', ') || '',
+            cores: product.cores || [],
+            tamanhos: product.tamanhos || [],
             quantidade: product.quantidade
         });
         setImageFiles([]);
@@ -94,8 +110,8 @@ const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
                 preco: parseFloat(formData.preco),
                 quantidade: parseInt(formData.quantidade),
                 imagens: finalImages,
-                cores: formData.cores.split(',').map(c => c.trim()).filter(Boolean),
-                tamanhos: formData.tamanhos.split(',').map(t => t.trim()).filter(Boolean)
+                cores: formData.cores,
+                tamanhos: formData.tamanhos
             };
 
             let result;
@@ -145,6 +161,24 @@ const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
             ...prev,
             imagens: prev.imagens.filter((_, i) => i !== index)
         }));
+    };
+
+    const toggleColor = (color) => {
+        setFormData(prev => {
+            const cores = prev.cores.includes(color)
+                ? prev.cores.filter(c => c !== color)
+                : [...prev.cores, color];
+            return { ...prev, cores };
+        });
+    };
+
+    const toggleSize = (size) => {
+        setFormData(prev => {
+            const tamanhos = prev.tamanhos.includes(size)
+                ? prev.tamanhos.filter(s => s !== size)
+                : [...prev.tamanhos, size];
+            return { ...prev, tamanhos };
+        });
     };
 
     const filteredProducts = products.filter(product =>
@@ -267,27 +301,57 @@ const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
 
                     {/* Options */}
                     <div>
-                        <label className="block text-sm font-medium mb-1">Cores (separadas por vírgula)</label>
-                        <input
-                            required
-                            placeholder="Ex: Preto, Branco, Azul Marinho"
-                            className="w-full p-2 border rounded-lg"
-                            value={formData.cores}
-                            onChange={e => setFormData({ ...formData, cores: e.target.value })}
-                            disabled={isSubmitting}
-                        />
+                        <label className="block text-sm font-medium mb-3 text-gray-700">Cores Disponíveis</label>
+                        <div className="flex flex-wrap gap-3">
+                            {AVAILABLE_COLORS.map((cor) => {
+                                const isSelected = formData.cores.includes(cor.name);
+                                const isWhite = cor.name === "Branco";
+
+                                return (
+                                    <button
+                                        key={cor.name}
+                                        type="button"
+                                        onClick={() => toggleColor(cor.name)}
+                                        className={`
+                                            flex items-center gap-2 p-2 px-3 rounded-xl border-2 transition-all
+                                            ${isSelected
+                                                ? 'border-black bg-black text-white'
+                                                : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200'}
+                                        `}
+                                    >
+                                        <div
+                                            className={`w-4 h-4 rounded-full border ${isWhite ? 'border-gray-300' : 'border-transparent'}`}
+                                            style={{ backgroundColor: cor.hex }}
+                                        />
+                                        <span className="text-xs font-semibold">{cor.name}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">Tamanhos (separados por vírgula)</label>
-                        <input
-                            required
-                            placeholder="Ex: P, M, G, GG"
-                            className="w-full p-2 border rounded-lg"
-                            value={formData.tamanhos}
-                            onChange={e => setFormData({ ...formData, tamanhos: e.target.value })}
-                            disabled={isSubmitting}
-                        />
+                        <label className="block text-sm font-medium mb-3 text-gray-700">Tamanhos Disponíveis</label>
+                        <div className="flex flex-wrap gap-2">
+                            {AVAILABLE_SIZES.map((size) => {
+                                const isSelected = formData.tamanhos.includes(size);
+                                return (
+                                    <button
+                                        key={size}
+                                        type="button"
+                                        onClick={() => toggleSize(size)}
+                                        className={`
+                                            w-12 h-12 flex items-center justify-center rounded-xl border-2 font-bold text-sm transition-all
+                                            ${isSelected
+                                                ? 'border-black bg-black text-white'
+                                                : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-gray-200'}
+                                        `}
+                                    >
+                                        {size}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     <button
