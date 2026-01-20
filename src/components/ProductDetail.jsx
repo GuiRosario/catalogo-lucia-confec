@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { urlFor } from '../lib/sanity';
-import { ArrowLeft, MessageCircle, ChevronLeft, ChevronRight, Share2, ShoppingBag, Check } from 'lucide-react';
+import { ArrowLeft, MessageCircle, ChevronLeft, ChevronRight, Share2, ShoppingBag, Check, Loader2 } from 'lucide-react';
 
 const ProductDetail = ({ product, onBack, onAddToCart, cartCount = 0, onOpenCart, showToast }) => {
     const [selectedImage, setSelectedImage] = useState(0);
+    const [isImageLoading, setIsImageLoading] = useState(true);
     const [selectedColor, setSelectedColor] = useState(null);
     const [selectedSize, setSelectedSize] = useState(null);
     const [touchStart, setTouchStart] = useState(null);
@@ -62,11 +63,13 @@ const ProductDetail = ({ product, onBack, onAddToCart, cartCount = 0, onOpenCart
 
     const nextImage = () => {
         if (images.length === 0) return;
+        setIsImageLoading(true);
         setSelectedImage((prev) => (prev + 1) % images.length);
     };
 
     const prevImage = () => {
         if (images.length === 0) return;
+        setIsImageLoading(true);
         setSelectedImage((prev) => (prev - 1 + images.length) % images.length);
     };
 
@@ -121,10 +124,16 @@ const ProductDetail = ({ product, onBack, onAddToCart, cartCount = 0, onOpenCart
                     onTouchMove={onTouchMove}
                     onTouchEnd={onTouchEnd}
                 >
+                    {isImageLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+                            <Loader2 className="w-10 h-10 animate-spin text-gray-400" />
+                        </div>
+                    )}
                     <img
                         src={getImageUrl(images[selectedImage])}
                         alt={product.nome}
-                        className="w-full h-full object-cover select-none pointer-events-none"
+                        className={`w-full h-full object-cover select-none pointer-events-none transition-opacity duration-300 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
+                        onLoad={() => setIsImageLoading(false)}
                     />
 
                     {images.length > 1 && (
