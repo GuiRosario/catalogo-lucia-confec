@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Edit, X, Save, Image as ImageIcon, Loader2, Search } from 'lucide-react';
 import { client, urlFor } from '../lib/sanity';
+import { compressImage } from '../utils/imageHelpers';
 
 const AVAILABLE_COLORS = [
     { name: "Preto", hex: "#000000" },
@@ -90,19 +91,24 @@ const AdminPanel = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
         setIsSubmitting(true);
 
         try {
-            // 1. Upload new images
-            const uploadedImages = [];
-            for (const file of imageFiles) {
-                const asset = await uploadImage(file);
-                if (asset) uploadedImages.push(asset);
-            }
+            // 1. Upload new images in parallel with compression
+            const uploadPromises = imageFiles.map(async (file) => {
+                try {
+                    const compressedFile = await compressImage(file);
+                    return await uploadImage(compressedFile);
+                } catch (err) {
+                    console.error("Error preparing/uploading image:", err);
+                    return null;
+                }
+            });
 
-            // Combine existing images (that verify as Sanity objects) with new uploads
-            // We filter out any 'string' legacy urls if we want to be strict, or keep them if migrating.
-            // Assuming we only keep valid objects or new uploads.
+            const uploadedAssets = await Promise.all(uploadPromises);
 
-            // If editing, formData.imagens has existing images.
-            const finalImages = [...(formData.imagens || []), ...uploadedImages];
+            // Filter out any failed uploads (nulls)
+            const validNewAssets = uploadedAssets.filter(asset => asset !== null);
+
+            // Combine existing images with new uploads
+            const finalImages = [...(formData.imagens || []), ...validNewAssets];
 
             const doc = {
                 _type: 'product',
