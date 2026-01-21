@@ -62,13 +62,13 @@ const ProductDetail = ({ product, onBack, onAddToCart, cartCount = 0, onOpenCart
     };
 
     const nextImage = () => {
-        if (images.length === 0) return;
+        if (images.length <= 1) return;
         setIsImageLoading(true);
         setSelectedImage((prev) => (prev + 1) % images.length);
     };
 
     const prevImage = () => {
-        if (images.length === 0) return;
+        if (images.length <= 1) return;
         setIsImageLoading(true);
         setSelectedImage((prev) => (prev - 1 + images.length) % images.length);
     };
@@ -77,7 +77,7 @@ const ProductDetail = ({ product, onBack, onAddToCart, cartCount = 0, onOpenCart
         <div className="fixed inset-0 bg-white z-[60] overflow-y-auto animate-in fade-in slide-in-from-bottom-10 duration-300">
 
             {/* Navbar Detalhe */}
-            <div className="fixed top-0 left-0 right-0 h-16 bg-transparent flex items-center justify-between px-4 z-10 pointer-events-none">
+            <div className="fixed top-0 left-0 right-0 h-16 bg-transparent flex items-center justify-between px-4 z-50 pointer-events-none">
                 <button
                     onClick={onBack}
                     className="bg-white p-2 rounded-full shadow-lg pointer-events-auto hover:bg-gray-100 transition-colors border border-gray-100"
