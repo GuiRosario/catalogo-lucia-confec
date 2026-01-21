@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ShoppingBag, Lock, Menu, X } from 'lucide-react';
 
-const Header = ({ onSearch, onToggleAdmin, isAdmin, cartCount = 0, onOpenCart, showToast }) => {
+const Header = ({ onSearch, onToggleAdmin, onGoHome, isAdmin, cartCount = 0, onOpenCart, showToast }) => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchValue, setSearchValue] = useState("");
 
@@ -23,7 +23,7 @@ const Header = ({ onSearch, onToggleAdmin, isAdmin, cartCount = 0, onOpenCart, s
                 {/* Brand */}
                 <div
                     className="flex items-center gap-2 cursor-pointer group"
-                    onClick={onOpenCart}
+                    onClick={onGoHome}
                 >
                     <div className="bg-black text-white p-1.5 rounded-lg transition-transform group-hover:scale-110">
                         <ShoppingBag size={20} strokeWidth={2.5} />

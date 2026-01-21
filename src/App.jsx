@@ -138,6 +138,7 @@ function App() {
       <Header
         onSearch={setSearchTerm}
         onToggleAdmin={handleToggleAdmin}
+        onGoHome={handleBackToHome}
         isAdmin={view === 'admin'}
         cartCount={cart.length}
         onOpenCart={() => setIsCartOpen(true)}
